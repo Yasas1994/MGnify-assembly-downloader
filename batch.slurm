@@ -5,8 +5,8 @@
 #SBATCH -c 2
 #SBATCH -o %j.out                            # stdout file name (%j: job ID)
 #SBATCH -e %j.err                             # stderr file name (%j: job ID)
-#SBATCH -t 72:00:00                        # max run time (hh:mm:ss), max 72h!
-#SBATCH --mem=4G
+#SBATCH -t 6-23:00:00                        # max run time (hh:mm:ss), max 72h!
+#SBATCH --mem=16G
 
 ## load modules
 module purge
