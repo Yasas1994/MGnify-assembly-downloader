@@ -131,35 +131,37 @@ def download_files(analysis_accession,download_options):
 
     API_BASE = 'https://www.ebi.ac.uk/metagenomics/api/latest/'
     with Session(API_BASE) as s:
-        analysis = s.get('analyses', analysis_accession).resource
-        
-        #write_analyses_file(analysis, analyses_fh) #should be removed
-        out_data["analysis"].append(analysis)
-        os.makedirs(f'analyses_assemblies/{analysis_accession}', exist_ok=True)
-        
-        # Download all the user specified files.
-        for download in analysis.downloads: 
-            if download.description.label in download_options:
-                id_ = download.id
-                url = download.url
+        try: #handles 404 error 
+            analysis = s.get('analyses', analysis_accession).resource
 
-                try:
-                    #time.sleep(0.01)
-                    urllib.request.urlretrieve(url,
-                            'analyses_assemblies/'
-                            f'{analysis_accession}/{id_}')
+            #write_analyses_file(analysis, analyses_fh) #should be removed
+            out_data["analysis"].append(analysis)
+            os.makedirs(f'analyses_assemblies/{analysis_accession}', exist_ok=True)
+
+            # Download all the user specified files.
+            for download in analysis.downloads: 
+                if download.description.label in download_options:
+                    id_ = download.id
+                    url = download.url
+
+                    try:
+                        #time.sleep(0.01)
+                        urllib.request.urlretrieve(url,
+                                'analyses_assemblies/'
+                                f'{analysis_accession}/{id_}')
 
 
-                except:
-    
-                    # Write the analysis accession to the first
-                    # error file but add (url) to it, so that it's
-                    # clear where it went wrong.
-                    out_data['errors'].append(f'{analysis_accession} {url}\n')
+                    except:
 
-        out_data['sample'].append(analysis.sample)
-        out_data['study'].append(analysis.study)
+                        # Write the analysis accession to the first
+                        # error file but add (url) to it, so that it's
+                        # clear where it went wrong.
+                        out_data['errors'].append(f'{analysis_accession} {url}\n')
 
+            out_data['sample'].append(analysis.sample)
+            out_data['study'].append(analysis.study)
+        except Exception as e:
+            print(e, analysis_accession)
     return out_data      
 
 def main():
