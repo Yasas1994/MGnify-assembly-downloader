@@ -162,6 +162,7 @@ def download_files(analysis_accession,download_options):
             out_data['study'].append(analysis.study)
         except Exception as e:
             print(e, analysis_accession)
+            out_data['errors'].append(f'{e} : {analyses_accession}\n')
     return out_data      
 
 def main():
@@ -256,53 +257,51 @@ def main():
 
         file_ = args.input
 
-        #analysis_accession = line.split(',')[0] #get the accession number
-        with ThreadPoolExecutor(max_workers=3) as pool, open(file_, 'r') as f:
-            # submit tasks
-            futures = []
-            for line_no,line in enumerate(f):
-                task = line.split(',')[0]
-                futures.append(pool.submit(download_files, task,download_options))
-            # get results as they are available
-            for future in as_completed(futures):
-                # get the result
-                
-                out_data = future.result()
-                
-                if out_data:
+    #analysis_accession = line.split(',')[0] #get the accession number
+    with ThreadPoolExecutor(max_workers=3) as pool, open(file_, 'r') as f:
+        # submit tasks
+        futures = []
+        for line_no,line in enumerate(f):
+            task = line.split(',')[0]
+            futures.append(pool.submit(download_files, task,download_options))
+        # get results as they are available
+        for future in as_completed(futures):
+            # get the result
 
-                    for study in out_data["study"]:   
-                        print(study.accession)
-                        if study.accession not in studies_trace:
-                            out_file = ('studies_name_and_abstract/'
-                                    f'{study.accession}.name_and_abstract')
-                            write_study_name_and_abstract(study, out_file) #should be removed
-                            
+            out_data = future.result()
+
+            if out_data:
+
+                for study in out_data["study"]:   
+                    print(study.accession)
+                    if study.accession not in studies_trace:
+                        out_file = ('studies_name_and_abstract/'
+                                f'{study.accession}.name_and_abstract')
+                        write_study_name_and_abstract(study, out_file) #should be removed
+                        with open(studies_file, 'a') as studies_fh:
                             write_studies_file(study, studies_fh) #should be removed
-                            
-                            studies_trace.add(study.accession) #should be removed
 
-                    for sample in out_data["sample"]:  
-                        
-                        if sample.accession not in samples_trace:
-                            out_file = ('samples_metadata/'
-                                    f'{sample.accession}.metadata')
-                            write_sample_metadata(sample, out_file) #should be removed
-                            
+                        studies_trace.add(study.accession) #should be removed
+
+                for sample in out_data["sample"]:  
+
+                    if sample.accession not in samples_trace:
+                        out_file = ('samples_metadata/'
+                                f'{sample.accession}.metadata')
+                        write_sample_metadata(sample, out_file) #should be removed
+                        open(samples_file, 'a') as samples_fh:
                             write_samples_file(sample, samples_fh) #should be removed
-                            
-                            samples_trace.add(sample.accession) 
-                        
-                    for analysis in out_data["analysis"]:
-                            
+
+                        samples_trace.add(sample.accession) 
+
+                for analysis in out_data["analysis"]:
+                    with open(analyses_file, 'a') as analyses_fh:
                         write_analyses_file(analysis, analyses_fh)
 
-                    for errors in out_data["errors"]:
-                        
+                for errors in out_data["errors"]:
+                    with open(error_file_1, 'a') as errf1:
                         errf1.write(errors)
-
-                        print('Done!')
-
+                        
 
 if __name__ == '__main__':
     main()
