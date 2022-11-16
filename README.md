@@ -1,5 +1,5 @@
 # MGnify-assembly-downloader
-Downloads all assemblies available on MGnify. Based on the original script by https://github.com/bastiaanvonmeijenfeldt
+Downloads all assemblies available on MGnify. Based on the original script by https://github.com/bastiaanvonmeijenfeldt to download data from MGnify databse using its API
 
 
 
