@@ -142,9 +142,9 @@ def download_files(analysis_accession,download_options,args):
             # Download all the user specified files.
             for download in analysis.downloads: 
                 if download.description.label in download_options:
-                    id_ = download.id
+                    id_ = download.id.replace('_FASTA','')
                     url = download.url
-
+                    print(url, id_)
                     try:
                         #time.sleep(0.01)
                         urllib.request.urlretrieve(url,
