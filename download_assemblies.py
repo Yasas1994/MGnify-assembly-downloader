@@ -16,6 +16,7 @@ def arg_parser():
     
     parser.add_argument('-i', '--input', required=True, 
         help="list of analyses ids")
+    parser.add_argument('-o', '--outdir', required=True)
     parser.add_argument('-d','--download',nargs='+', type= int,
                         help="1: Processed contigs\n2: Predicted CDS (aa)\n3: Predicted ORF (nt)\n4: Diamond annotation\n5: Complete GO annotation\n6: GO slim annotation\n7: InterPro matches\n"+
                     "8: KEGG orthologues annotation\n9: Pfam annotation\n10: Contigs encoding SSU rRNA\n11: MAPseq SSU assignments\n12: OTUs, counts and taxonomic assignments for SSU rRNA\n"+
@@ -126,7 +127,7 @@ def write_analyses_file(analysis=None, analyses_fh=None):
                 analysis.sample.accession, analysis.study.accession,
                 analysis.pipeline_version, analysis.complete_time))
             
-def download_files(analysis_accession,download_options):
+def download_files(analysis_accession,download_options,args):
     out_data = {'errors':[], 'analysis':[] , 'sample' :[], 'study': []}
 
     API_BASE = 'https://www.ebi.ac.uk/metagenomics/api/latest/'
@@ -136,7 +137,7 @@ def download_files(analysis_accession,download_options):
 
             #write_analyses_file(analysis, analyses_fh) #should be removed
             out_data["analysis"].append(analysis)
-            os.makedirs(f'analyses_assemblies/{analysis_accession}', exist_ok=True)
+            os.makedirs(f'{args.outdir}/analyses_assemblies/{analysis_accession}', exist_ok=True)
 
             # Download all the user specified files.
             for download in analysis.downloads: 
@@ -147,8 +148,7 @@ def download_files(analysis_accession,download_options):
                     try:
                         #time.sleep(0.01)
                         urllib.request.urlretrieve(url,
-                                'analyses_assemblies/'
-                                f'{analysis_accession}/{id_}')
+                                f'{args.outdir}/analyses_assemblies/{analysis_accession}/{id_}')
 
 
                     except:
@@ -166,6 +166,12 @@ def download_files(analysis_accession,download_options):
     return out_data      
 
 def main():
+    args = arg_parser()
+    # prepare output directory
+    output_dir = args.outdir
+    if not os.path.isdir(output_dir):
+        os.makedirs(output_dir, exist_ok=True)
+
     options = { 1:'Processed contigs',
                 2:'Predicted CDS (aa)',
                 3:'Predicted ORF (nt)',
@@ -186,13 +192,13 @@ def main():
                 19:'Genome Properties annotation',
                 20:'KEGG pathway annotation' }
 
-    args = arg_parser()
+    
     download_options = set([options[i] for i in  args.download])
     # Make directories.
-    os.makedirs('analyses_assemblies', exist_ok=True)
-    os.makedirs('studies_name_and_abstract', exist_ok=True)
-    os.makedirs('samples_metadata', exist_ok=True)
-    os.makedirs('additional', exist_ok=True)
+    os.makedirs(f'{args.outdir}/analyses_assemblies', exist_ok=True)
+    os.makedirs(f'{args.outdir}/studies_name_and_abstract', exist_ok=True)
+    os.makedirs(f'{args.outdir}/samples_metadata', exist_ok=True)
+    os.makedirs(f'{args.outdir}/additional', exist_ok=True)
     date = str(datetime.date.today())
     # Construct output files. First numerical in the name reflects the level
     # of hierarchy, 1 being the highest, 4 the lowest. NOTE that there are no
@@ -200,14 +206,14 @@ def main():
     #write_studies_file()
     # write_samples_file()
     # write_analyses_file()
-    studies_file = './additional/1_studies.txt'
-    samples_file = './additional/2_samples.txt'
-    analyses_file = './additional/4_analyses.txt'
+    studies_file = f'{args.outdir}/additional/1_studies.txt'
+    samples_file = f'{args.outdir}/additional/2_samples.txt'
+    analyses_file = f'{args.outdir}/additional/4_analyses.txt'
 
     # This error file lists all analyses where something went wrong whilst
     # retrieving information from MGnify, including analyses where something
     # went wrong during the download.
-    error_file_1 = f'./additional/not_downloaded.assemblies.{date}_analyses.txt'
+    error_file_1 = f'{args.outdir}/additional/not_downloaded.assemblies.{date}_analyses.txt'
 
     # This error file lists all downloads that did not succeed.
     # error_file_2 = f'./additional/not_downloaded.assemblies.{date}_analyses.urls.txt'
@@ -263,7 +269,7 @@ def main():
         futures = []
         for line_no,line in enumerate(f):
             task = line.split(',')[0]
-            futures.append(pool.submit(download_files, task,download_options))
+            futures.append(pool.submit(download_files, task, download_options,args))
         # get results as they are available
         for future in as_completed(futures):
             # get the result
@@ -275,8 +281,7 @@ def main():
                 for study in out_data["study"]:   
                     print(study.accession)
                     if study.accession not in studies_trace:
-                        out_file = ('studies_name_and_abstract/'
-                                f'{study.accession}.name_and_abstract')
+                        out_file = f'{args.outdir}/studies_name_and_abstract/{study.accession}.name_and_abstract'
                         write_study_name_and_abstract(study, out_file) #should be removed
                         with open(studies_file, 'a') as studies_fh:
                             write_studies_file(study, studies_fh) #should be removed
@@ -286,10 +291,9 @@ def main():
                 for sample in out_data["sample"]:  
 
                     if sample.accession not in samples_trace:
-                        out_file = ('samples_metadata/'
-                                f'{sample.accession}.metadata')
+                        out_file = f'{args.outdir}/samples_metadata/{sample.accession}.metadata'
                         write_sample_metadata(sample, out_file) #should be removed
-                        open(samples_file, 'a') as samples_fh:
+                        with open(samples_file, 'a') as samples_fh:
                             write_samples_file(sample, samples_fh) #should be removed
 
                         samples_trace.add(sample.accession) 
