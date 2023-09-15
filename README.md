@@ -23,7 +23,7 @@ python download_assemblies.py -i analyses_and_assembly.txt  -d list_of_integers
 
 
 ```
-python download_assemblies.py -i analyses_and_assembly.txt  -d 1 3
+python download_assemblies.py -i analyses_and_assembly.txt -o path/to/out/dir -d 1 3
 ```
 
 ### how to use the second script
@@ -35,7 +35,9 @@ MGnify assembly downloader v.1.0
 optional arguments:
   -h, --help            show this help message and exit
   -i INPUT, --input INPUT
-                        list of analyses ids
+                        a txt file with list of analyses ids
+  -o OUTDIR, --outdir OUTDIR 
+                        path to output directory 
   -d DOWNLOAD [DOWNLOAD ...], --download DOWNLOAD [DOWNLOAD ...]
                         1: Processed contigs
                         2: Predicted CDS (aa)
