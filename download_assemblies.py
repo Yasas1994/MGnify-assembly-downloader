@@ -18,10 +18,34 @@ def arg_parser():
         help="list of analyses ids")
     parser.add_argument('-o', '--outdir', required=True)
     parser.add_argument('-d','--download',nargs='+', type= int,
-                        help="1: Processed contigs\n2: Predicted CDS (aa)\n3: Predicted ORF (nt)\n4: Diamond annotation\n5: Complete GO annotation\n6: GO slim annotation\n7: InterPro matches\n"+
-                    "8: KEGG orthologues annotation\n9: Pfam annotation\n10: Contigs encoding SSU rRNA\n11: MAPseq SSU assignments\n12: OTUs, counts and taxonomic assignments for SSU rRNA\n"+
-                    "13: Contigs encoding LSU rRNA\n14: MAPseq LSU assignments\n15: OTUs, counts and taxonomic assignments for LSU rRNA\n17: antiSMASH annotation\n18: antiSMASH annotation"+
-                    "19: Genome Properties annotation\n20: KEGG pathway annotation" )
+help="1:Processed contigs\n\
+2:Predicted CDS (aa)\n\
+3:Predicted ORF (nt)\n\
+4:Diamond annotation\n\
+5:Complete GO annotation\n\
+6:GO slim annotation\n\
+7:InterPro summary\n\
+8:InterPro matches\n\
+9:KEGG orthologues annotation\n\
+10:Pfam annotation\n\
+11:Contigs encoding SSU rRNA\n\
+12:Contigs encoding LSU rRNA\n\
+13:MAPseq SSU assignments\n\
+14:MAPseq LSU assignments\n\
+15:OTUs, counts and taxonomic assignments for SSU rRNA\n\
+16:OTUs, counts and taxonomic assignments for LSU rRNA\n\
+17:antiSMASH annotation\n\
+18:Genome Properties annotation\n\
+19:KEGG pathway annotation\n\
+20:Combined (eggNOG, InterPro, antiSMASH) annotation\n\
+21:eggNOG annotation\n\
+22:eggNOG seed orthologs\n\
+23:Predicted Archaea SRP RNA\n\
+24:Predicted Bacteria large SRP RNA\n\
+25:Predicted Metazoa SRP RNA\n\
+26:Predicted alpha tmRNA\n\
+27:Predicted cyano tmRNA\n\
+28:Predicted beta tmRNA\n")
 
 
     args = parser.parse_args()
@@ -134,19 +158,20 @@ def download_files(analysis_accession,download_options,args):
     with Session(API_BASE) as s:
         try: #handles 404 error 
             analysis = s.get('analyses', analysis_accession).resource
-
+            
             #write_analyses_file(analysis, analyses_fh) #should be removed
             out_data["analysis"].append(analysis)
             os.makedirs(f'{args.outdir}/analyses_assemblies/{analysis_accession}', exist_ok=True)
 
             # Download all the user specified files.
             for download in analysis.downloads: 
+                #print(analysis_accession, download.description.label)
                 if download.description.label in download_options:
                     id_ = download.id.replace('_FASTA','')
                     url = download.url
                     print(url, id_)
                     try:
-                        #time.sleep(0.01)
+                        time.sleep(0.1)
                         urllib.request.urlretrieve(url,
                                 f'{args.outdir}/analyses_assemblies/{analysis_accession}/{id_}')
 
@@ -178,19 +203,29 @@ def main():
                 4:'Diamond annotation',
                 5:'Complete GO annotation',
                 6:'GO slim annotation',
-                7:'InterPro matches',
-                8:'KEGG orthologues annotation',
-                9:'Pfam annotation',
-                10:'Contigs encoding SSU rRNA',
-                11:'MAPseq SSU assignments',
-                12:'OTUs, counts and taxonomic assignments for SSU rRNA',
-                13:'Contigs encoding LSU rRNA',
+                7:'InterPro summary',
+                8:'InterPro matches',
+                9:'KEGG orthologues annotation',
+                10:'Pfam annotation',
+                11:'Contigs encoding SSU rRNA',
+                12:'Contigs encoding LSU rRNA',
+                13:'MAPseq SSU assignments',
                 14:'MAPseq LSU assignments',
-                15:'OTUs, counts and taxonomic assignments for LSU rRNA',
+                15:'OTUs, counts and taxonomic assignments for SSU rRNA',
+                16:'OTUs, counts and taxonomic assignments for LSU rRNA',
                 17:'antiSMASH annotation',
-                18:'antiSMASH annotation',
-                19:'Genome Properties annotation',
-                20:'KEGG pathway annotation' }
+                18:'Genome Properties annotation',
+                19:'KEGG pathway annotation' ,
+                20:'Combined (eggNOG, InterPro, antiSMASH) annotation',
+                21:'eggNOG annotation',
+                22:'eggNOG seed orthologs',
+                23:'Predicted Archaea SRP RNA',
+                24:'Predicted Bacteria large SRP RNA',
+                25:'Predicted Metazoa SRP RNA',
+                26:'Predicted alpha tmRNA',
+                27:'Predicted cyano tmRNA',
+                28:'Predicted beta tmRNA',
+                }
 
     
     download_options = set([options[i] for i in  args.download])
@@ -269,6 +304,7 @@ def main():
         futures = []
         for line_no,line in enumerate(f):
             task = line.split(',')[0]
+            print(f"current task : {task}")
             futures.append(pool.submit(download_files, task, download_options,args))
         # get results as they are available
         for future in as_completed(futures):
@@ -279,7 +315,7 @@ def main():
             if out_data:
 
                 for study in out_data["study"]:   
-                    print(study.accession)
+                    
                     if study.accession not in studies_trace:
                         out_file = f'{args.outdir}/studies_name_and_abstract/{study.accession}.name_and_abstract'
                         write_study_name_and_abstract(study, out_file) #should be removed
@@ -289,7 +325,7 @@ def main():
                         studies_trace.add(study.accession) #should be removed
 
                 for sample in out_data["sample"]:  
-
+                    
                     if sample.accession not in samples_trace:
                         out_file = f'{args.outdir}/samples_metadata/{sample.accession}.metadata'
                         write_sample_metadata(sample, out_file) #should be removed
